@@ -1,0 +1,7 @@
+{
+    "lr": 0.1,
+    "batch_size": 128,
+    "epochs": 200,
+    "data_dir": "../datasets",
+    "resume": null
+}

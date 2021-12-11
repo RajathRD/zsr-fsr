@@ -135,7 +135,7 @@ class ResNet(nn.Module):
         self,
         block: Type[Union[BasicBlock, Bottleneck]],
         layers: List[int],
-        num_classes: int = 100,
+        num_outputs: int = 100,
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
@@ -171,7 +171,7 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2])
         self.dropout = nn.Dropout(0.4)
         
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
+        self.fc = nn.Linear(512 * block.expansion, num_outputs)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -258,22 +258,20 @@ class ResNet(nn.Module):
 
 def _resnet(
     arch: str,
+    num_outputs: int,
     block: Type[Union[BasicBlock, Bottleneck]],
     layers: List[int],
-    pretrained: bool,
-    progress: bool,
     **kwargs: Any,
 ) -> ResNet:
-    model = ResNet(block, layers, **kwargs)
+    model = ResNet(block, layers, num_outputs, **kwargs)
     return model
 
 
-def resnet18(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> ResNet:
+def resnet18(num_outputs=100, **kwargs: Any) -> ResNet:
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
 
     Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
+        num_outputs (int): number of final output neurons
     """
-    return _resnet("resnet18", BasicBlock, [2, 2, 2, 2], pretrained, progress, **kwargs)
+    return _resnet("resnet18", num_outputs, BasicBlock, [2, 2, 2, 2], **kwargs)

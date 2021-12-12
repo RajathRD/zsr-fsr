@@ -10,6 +10,8 @@ import torch.backends.cudnn as cudnn
 from sklearn.neighbors import KNeighborsClassifier
 from datasets.dataloader import *
 from models.base_model import BaseModel
+from models.semantic_model import SemanticEmbeddingModel
+from utils.loss import DeviseLoss
 
 # tqdm progressbarfrom:
 # https://towardsdatascience.com/training-models-with-a-progress-a-bar-2b664de3e13e
@@ -82,15 +84,15 @@ test_loader = torch.utils.data.DataLoader(
     test_data, batch_size=batch_size, shuffle=False, num_workers=2)
 
 print("Creating Model...")
-model = BaseModel(300)
+model = SemanticEmbeddingModel(300)
 
 model = model.to(device)
 
 if device == "cuda":
     cudnn.benchmark = True
 #TODO: implement resume train
-
-criterion = nn.MSELoss()
+train_criterion = DeviseLoss(train_data.word_vectors, train_data.target_classes, train_data.classes)
+test_criterion = DeviseLoss(test_data.word_vectors, test_data.target_classes, test_data.classes)
 
 optimizer = optim.SGD(model.parameters(), lr=config['lr'],
                       momentum=0.9, weight_decay=0.0005)
@@ -114,12 +116,12 @@ def train(epoch):
     correct = 0
     total = 0
     with tqdm(train_loader, unit='batch', bar_format="{l_bar}{bar}{n_fmt}/{total_fmt} [{elapsed}] {postfix}") as tepoch:
-        for inputs, target_wvs, targets in tepoch :
+        for inputs, target_wvs, targets, negatives in tepoch :
             tepoch.set_description(f'Epoch: {epoch}')
             inputs, target_wvs = inputs.to(device), target_wvs.to(device)
             optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, target_wvs)
+            outputs, y = model(inputs, target_wvs)
+            loss = train_criterion(outputs, targets, y)
             loss.backward()
             optimizer.step()
             predicted = train_classifier.predict(outputs.cpu().data.numpy())
@@ -135,7 +137,7 @@ def train(epoch):
                 correct=correct, 
                 total=total
             )
-            # sleep(0.1)
+            
 
 def test(epoch):
     model.eval()
@@ -144,11 +146,11 @@ def test(epoch):
     total = 0
     with torch.no_grad():
         with tqdm(test_loader, unit='batch') as tepoch:
-            for inputs, target_wvs, targets in tepoch:
+            for inputs, target_wvs, targets, negatives in tepoch:
                 tepoch.set_description(f'Epoch: {epoch}')
                 inputs, target_wvs = inputs.to(device), target_wvs.to(device)
-                outputs = model(inputs)
-                loss = criterion(outputs, target_wvs)
+                outputs, target_wvs = model(inputs, target_wvs)
+                loss = test_criterion(outputs, targets, target_wvs)
                 predicted = test_classifier.predict(outputs.cpu().data.numpy())
                 preds = torch.Tensor(test_data.target_classes[predicted])
                 

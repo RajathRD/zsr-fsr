@@ -9,6 +9,8 @@ class BaseModel(nn.Module):
         super(BaseModel, self).__init__()
 
         self.resnet = resnet18(num_outputs)
-
+    
     def forward(self, x):
-        return self.resnet(x)
+        out = self.resnet(x)
+
+        return out

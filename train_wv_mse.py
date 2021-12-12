@@ -1,11 +1,13 @@
 import os
-import torch
 import json
 
+import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as T
 import torch.backends.cudnn as cudnn
+
+from sklearn.neighbors import KNeighborsClassifier
 from datasets.dataloader import *
 from models.base_model import BaseModel
 
@@ -67,6 +69,12 @@ elif dataset == 'cifar_oneshot':
     test_data = cifarKShot(data_dir, train_transforms, transforms, train=False, k=1)
     
 
+train_classifier = KNeighborsClassifier(n_neighbors=1)
+test_classifier = KNeighborsClassifier(n_neighbors=1)
+
+train_classifier.fit(train_data.target_wv, np.arange(len(train_data.target_classes)))
+test_classifier.fit(test_data.target_wv, np.arange(len(test_data.target_classes)))
+
 train_loader = torch.utils.data.DataLoader(
     train_data, batch_size=batch_size, shuffle=True, num_workers=2)
 
@@ -74,15 +82,13 @@ test_loader = torch.utils.data.DataLoader(
     test_data, batch_size=batch_size, shuffle=False, num_workers=2)
 
 print("Creating Model...")
-model = BaseModel()
-
+model = BaseModel(300)
+criterion = nn.MSELoss()
 model = model.to(device)
 
 if device == "cuda":
     cudnn.benchmark = True
 #TODO: implement resume train
-
-criterion = nn.CrossEntropyLoss()
 
 optimizer = optim.SGD(model.parameters(), lr=config['lr'],
                       momentum=0.9, weight_decay=0.0005)
@@ -106,17 +112,20 @@ def train(epoch):
     correct = 0
     total = 0
     with tqdm(train_loader, unit='batch', bar_format="{l_bar}{bar}{n_fmt}/{total_fmt} [{elapsed}] {postfix}") as tepoch:
-        for inputs, targets in tepoch:
+        for inputs, target_wvs, targets, negatives in tepoch :
             tepoch.set_description(f'Epoch: {epoch}')
-            inputs, targets = inputs.to(device), targets.to(device)
+            inputs, target_wvs = inputs.to(device), target_wvs.to(device)
             optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
+            outputs = model(inputs, target_wvs)
+            loss = criterion(outputs, target_wvs)
             loss.backward()
             optimizer.step()
-            _, predicted = outputs.max(1)
+            predicted = train_classifier.predict(outputs.cpu().data.numpy())
+            preds = torch.Tensor(train_data.target_classes[predicted])
+            
+            # print (preds, targets)
             total += targets.size(0)
-            correct += (predicted == targets).sum().item()
+            correct += (preds == targets).sum().item()
             accuracy = 100.*correct/total
             tepoch.set_postfix(
                 loss=loss.item(), 
@@ -124,6 +133,7 @@ def train(epoch):
                 correct=correct, 
                 total=total
             )
+            
 
 def test(epoch):
     model.eval()
@@ -132,18 +142,21 @@ def test(epoch):
     total = 0
     with torch.no_grad():
         with tqdm(test_loader, unit='batch') as tepoch:
-            for inputs, targets in tepoch:
+            for inputs, target_wvs, targets, negatives in tepoch:
                 tepoch.set_description(f'Epoch: {epoch}')
-                inputs, targets = inputs.to(device), targets.to(device)
-                outputs = model(inputs)
-                loss = criterion(outputs, targets)
-                _, predicted = outputs.max(1)
+                inputs, target_wvs = inputs.to(device), target_wvs.to(device)
+                outputs = model(inputs, target_wvs)
+                loss = criterion(outputs, target_wvs)
+                predicted = test_classifier.predict(outputs.cpu().data.numpy())
+                preds = torch.Tensor(test_data.target_classes[predicted])
+                
+                # print (preds, targets)
                 total += targets.size(0)
-                correct += (predicted == targets).sum().item()
+                correct += (preds == targets).sum().item()
                 accuracy = 100.*correct/total
                 tepoch.set_postfix(
                     loss=loss.item(), 
-                    accuracy= accuracy, 
+                    accuracy=accuracy, 
                     correct=correct, 
                     total=total
                 )

@@ -5,6 +5,8 @@ import fasttext
 import fasttext.util
 import pickle
 import json
+import chakin
+from sklearn.preprocessing import normalize
 
 from gensim import models
 from datasets.dataloader import cifarOriginal
@@ -20,8 +22,16 @@ if not os.path.exists(data_dir):
 
 words = cifarOriginal(config['data_dir'], [], [])[0].classes
 
+def normalize(x):
+    return x/np.sqrt(np.sum(np.square(x)))
+
 def save_vectors(file_name, w2v):
-    pickle.dump(w2v, open(file_name, 'wb'))
+    pickle.dump(w2v, open(f'{file_name}.pkl', 'wb'))
+    
+    for w in w2v:
+        w2v = normalize(w2v[w])
+
+    pickle.dump(w2v, open(f'{file_name}_unitnorm.pkl', 'wb'))
 
 def extract_w2v(words, vocab2vec=None, get_vector_fn=None):
     w2v = {}
@@ -83,9 +93,9 @@ def google_news(file_name='GoogleNews-vectors-negative300.bin'):
     
 
 if __name__ == "__main__":
-    save_vectors("w2v_fasttext.pkl", fasttext_())
-    save_vectors("w2v_glove.pkl", glove())
-    save_vectors("w2v_google.pkl", google_news())
+    save_vectors("w2v_fasttext", fasttext_())
+    save_vectors("w2v_glove", glove())
+    save_vectors("w2v_google", google_news())
 
     # we don't use glove twitter because it doesn't contian the word flatfish
     # save_vectors("w2v_glove.pkl", glove('glove.twitter.27B.200d.txt'))

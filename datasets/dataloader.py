@@ -77,25 +77,24 @@ class cifarZSW2V(Dataset):
             self.target_classes = np.array(test_classes)
         # print (self.classes, len(self.classes))
         # print ()
-        self.target_wv = [ self.word_vectors[self.classes[idx]] for idx in self.target_classes]
+        self.target_wv = [self.word_vectors[self.classes[idx]] for idx in self.target_classes]
 
         self.indices = [i for i in range(len(torch_data.targets)) if torch_data.targets[i] in self.target_classes]
 
         self.data = torch_data.data[self.indices]
         self.targets = list(np.array(torch_data.targets)[self.indices])
 
-
     def __getitem__(self, index):
         img, target = self.data[index], self.word_vectors[self.classes[self.targets[index]]]
-
+        negative = self.word_vectors[self.classes[np.random.choice([c for c in self.target_classes if c != self.targets[index]])]]
         img = Image.fromarray(img)
 
         if self.transform is not None:
             img = self.transform(img)
 
         target = TF.Tensor(target)
-
-        return img, target, self.targets[index]
+        negative = TF.Tensor(negative)
+        return img, target, self.targets[index], negative
 
     def __len__(self):
         return len(self.data)

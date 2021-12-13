@@ -16,7 +16,7 @@ from models.base_model import BaseModel
 from tqdm import tqdm
 from time import sleep
 
-config = json.load(open("config.json"))
+config = json.load(open("./configs/config_wv.json"))
 
 model_dir = config['model_dir']
 model_name = config['model_name']
@@ -116,7 +116,7 @@ def train(epoch):
             tepoch.set_description(f'Epoch: {epoch}')
             inputs, target_wvs = inputs.to(device), target_wvs.to(device)
             optimizer.zero_grad()
-            outputs = model(inputs, target_wvs)
+            outputs = model(inputs)
             loss = criterion(outputs, target_wvs)
             loss.backward()
             optimizer.step()
@@ -145,7 +145,7 @@ def test(epoch):
             for inputs, target_wvs, targets, negatives in tepoch:
                 tepoch.set_description(f'Epoch: {epoch}')
                 inputs, target_wvs = inputs.to(device), target_wvs.to(device)
-                outputs = model(inputs, target_wvs)
+                outputs = model(inputs)
                 loss = criterion(outputs, target_wvs)
                 predicted = test_classifier.predict(outputs.cpu().data.numpy())
                 preds = torch.Tensor(test_data.target_classes[predicted])

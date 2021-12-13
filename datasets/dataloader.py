@@ -9,7 +9,7 @@ import pickle
 from PIL import Image
 from torch.utils.data import Dataset
 
-config = json.load(open("config.json"))
+config = json.load(open("./configs/config_base.json"))
 
 def cifarOriginal(data_dir, train_transforms, transforms):
     train_data = torchvision.datasets.CIFAR100(
@@ -70,7 +70,7 @@ class cifarZSW2V(Dataset):
         test_classes = [torch_data.classes.index(c) for c in config["test_classes"]]
         self.classes = torch_data.classes
         self.word_vectors = pickle.load(open(os.path.join(config['w2v_dir'], config[vector_type]), 'rb'))
-
+        # print (self.word_vectors)
         if train == True:
             self.target_classes = np.delete(np.arange(100), test_classes)
         else:
@@ -91,8 +91,8 @@ class cifarZSW2V(Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
-
-        target = TF.Tensor(target)
+        # print (target)
+        target = TF.Tensor(target) 
         negative = TF.Tensor(negative)
         return img, target, self.targets[index], negative
 

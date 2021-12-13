@@ -13,9 +13,9 @@
 
     "test_classes": ["bicycle", "girl", "table", "crocodile", "maple_tree", "wolf", "raccoon", "dolphin", "train", "crab", "boy", "pear", "leopard", "cup", "lizard"],
 
-    "fasttext": "w2v_fasttext.pkl",
-    "googlenews": "w2v_google.pkl",
-    "glove": "w2v_glove.pkl",
-    "glove_twitter": "w2v_glove_twitter.pkl",
+    "fasttext": "w2v_fasttext_unitnorm.pkl",
+    "googlenews": "w2v_google_unitnorm.pkl",
+    "glove": "w2v_glove_unitnorm.pkl",
+    "glove_twitter": "w2v_glove_twitter_unitnorn.pkl",
     "support_file": "cifar_kshot_support.pkl"
 }

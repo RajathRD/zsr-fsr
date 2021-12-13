@@ -10,13 +10,55 @@ class DeviseLoss(nn.Module):
         self.classes = classes
         self.target_classes = target_classes
 
-    def forward(self, outputs, targets, target_wvs):
+    def distance(self, a, b):
+        return torch.sum(torch.multiply(a, b), axis=1)
+    # def distance(self, a, b):
+    #     return torch.sum(torch.square(a - b), axis=1)
+
+    def forward(self, outputs, target_wvs, targets):
         loss = 0
-        margin = 0.1
-        true_distance = torch.sum(torch.multiply(outputs, target_wvs), axis=1)
+        margin = 0.2
+        true_distance = self.distance(outputs, target_wvs)
         for j in self.target_classes:
-            j_distance = torch.matmul(outputs, torch.Tensor(self.word_vectors[self.classes[j]]).to(device))
-            l = torch.clamp(margin - true_distance + j_distance, min=0)
+            j_wv = torch.Tensor(self.word_vectors[self.classes[j]]).to(device)
+            j_distance = self.distance(outputs, j_wv)
+            # j_distance =
+            l = torch.clamp(margin + true_distance - j_distance, min=0)
             loss += torch.sum(l)
         loss /= outputs.shape[0]
+        return loss
+
+class DeviseLossWNegative(nn.Module):
+    def __init__(self):
+        super(DeviseLossWNegative, self).__init__()
+        self.margin = 0.2
+    
+    # def distance(self, a, b):
+    #     return torch.sum(torch.multiply(a, b), axis=1)
+
+    def distance(self, a, b):
+        return torch.sum(torch.square(a - b), axis=1)
+
+    def forward(self, outputs, target_wvs, negatives):
+        loss = 0
+        
+        true_distance = self.distance(outputs, target_wvs)
+        neg_distance = self.distance(outputs, negatives)
+        loss = torch.clamp(self.margin + true_distance - neg_distance, 0)
+        loss = torch.sum(loss, axis=0)
+        loss /= outputs.shape[0]
+
+        return loss
+
+class HingeLoss(nn.Module):
+    def __init__(self):
+        super(HingeLoss, self).__init__()
+    
+    def forward(self, outputs, targets, target_wvs):
+        margin = 0.1
+        true_distance = torch.sum(torch.multiply(outputs, target_wvs), axis=1)
+        true_distance = torch.clamp(margin - true_distance, min=0)
+        loss = torch.sum(true_distance)
+        loss /= outputs.shape[0]
+        
         return loss

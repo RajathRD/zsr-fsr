@@ -27,7 +27,7 @@ def normalize(x):
 
 def save_vectors(file_name, w2v):
     pickle.dump(w2v, open(f'{file_name}.pkl', 'wb'))
-    
+    print (w2v['apple'])
     for w in w2v:
         w2v = normalize(w2v[w])
 

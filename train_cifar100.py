@@ -14,7 +14,7 @@ from models.base_model import BaseModel
 from tqdm import tqdm
 from time import sleep
 
-config = json.load(open("config.json"))
+config = json.load(open("./configs/config_base.json"))
 
 model_dir = config['model_dir']
 model_name = config['model_name']

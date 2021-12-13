@@ -102,6 +102,7 @@ class cifarZSW2V(Dataset):
 class cifarKShot(Dataset):
     def __init__(self, data_dir, train_transforms, transforms, train, k=1):
         self.k = k
+        self.train = train
         if train == True:
             self.transform = T.Compose(train_transforms + transforms)
             torch_data = torchvision.datasets.CIFAR100(
@@ -125,16 +126,23 @@ class cifarKShot(Dataset):
         self.targets = list(np.array(torch_data.targets)[self.indices])
 
     def __getitem__(self, index):
-        img, target = self.data[index], self.support_data[self.targets[index]][0]
+        img = self.data[index]
 
+        if self.train:
+            target = #pick random train image for target
+            negative = # pick random train image which is not target
+        else:
+            targets = self.support_data[self.targets[index]][:k]
+            
         img = Image.fromarray(img)
         target = Image.fromarray(target)
 
         if self.transform is not None:
             img = self.transform(img)
             target = self.transform(target)
+            negative = self.transform(negative)
         
-        return img, target
+        return img_1, img_2, neg_img
 
     def __len__(self):
         return len(self.data)

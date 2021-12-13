@@ -6,7 +6,6 @@ import fasttext.util
 import pickle
 import json
 import chakin
-from sklearn.preprocessing import normalize
 
 from gensim import models
 from datasets.dataloader import cifarOriginal
@@ -26,12 +25,12 @@ def normalize(x):
     return x/np.sqrt(np.sum(np.square(x)))
 
 def save_vectors(file_name, w2v):
-    pickle.dump(w2v, open(f'{file_name}.pkl', 'wb'))
     
+    pickle.dump(w2v, open(f'{os.path.join(data_dir, file_name)}.pkl', 'wb'))
     for w in w2v:
-        w2v = normalize(w2v[w])
+        w2v[w] = normalize(w2v[w])
 
-    pickle.dump(w2v, open(f'{file_name}_unitnorm.pkl', 'wb'))
+    pickle.dump(w2v, open(f'{os.path.join(data_dir, file_name)}_unitnorm.pkl', 'wb'))
 
 def extract_w2v(words, vocab2vec=None, get_vector_fn=None):
     w2v = {}

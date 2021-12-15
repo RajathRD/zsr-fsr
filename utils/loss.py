@@ -4,14 +4,18 @@ from torch.nn.functional import normalize
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 class DeviseLoss(nn.Module):
+    # essentially hinge + triplet across all negatives in vocab
     def __init__(self, word_vectors, target_classes, classes):
         super(DeviseLoss, self).__init__()
         self.word_vectors = word_vectors
         self.classes = classes
         self.target_classes = target_classes
 
+    # cosine
     def distance(self, a, b):
         return torch.sum(torch.multiply(a, b), axis=1)
+    
+    # euclidean / mse
     # def distance(self, a, b):
     #     return torch.sum(torch.square(a - b), axis=1)
 
@@ -33,9 +37,11 @@ class DeviseLossWNegative(nn.Module):
         super(DeviseLossWNegative, self).__init__()
         self.margin = 0.2
     
+    # cosine
     # def distance(self, a, b):
     #     return torch.sum(torch.multiply(a, b), axis=1)
 
+    # euclidean / mse
     def distance(self, a, b):
         return torch.sum(torch.square(a - b), axis=1)
 
@@ -44,7 +50,7 @@ class DeviseLossWNegative(nn.Module):
         
         true_distance = self.distance(outputs, target_wvs)
         neg_distance = self.distance(outputs, negatives)
-        loss = torch.clamp(self.margin - true_distance + neg_distance, 0)
+        loss = true_distance - neg_distance
         loss = torch.sum(loss, axis=0)
         loss /= outputs.shape[0]
 

@@ -11,7 +11,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from datasets.dataloader import *
 from models.base_model import *
 from sklearn.metrics import top_k_accuracy_score
-
+from utils.loss import *
 # tqdm progressbarfrom:
 # https://towardsdatascience.com/training-models-with-a-progress-a-bar-2b664de3e13e
 from tqdm import tqdm
@@ -90,7 +90,7 @@ print("Creating Model...")
 model = BaseModel(train_data.word_vectors['apple'].shape[0])
 # model = CNN(train_data.word_vectors['apple'].shape[0])
 criterion = nn.MSELoss()
-# criterion = nn.CosineEmbeddingLoss()
+# criterion = TripletLoss()
 model = model.to(device)
 
 if device == "cuda":
@@ -128,7 +128,7 @@ def train(epoch):
             inputs, target_wvs = inputs.to(device), target_wvs.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
-            # print (outputs.shape)
+
             loss = criterion(outputs, target_wvs)
             loss.backward()
             optimizer.step()
@@ -137,11 +137,7 @@ def train(epoch):
             predict_probas = train_classifier.predict_proba(outputs.cpu().data.numpy())
             all_targets += targets.cpu().data.tolist()
             all_probas += predict_probas.tolist()
-            # print (predict_proba)
-            
-            # if batch_idx == 5:
-            #     break
-            # print (preds, targets)
+
             total += targets.size(0)
             correct += (preds == targets).sum().item()
             accuracy = 100.*correct/total
@@ -151,7 +147,6 @@ def train(epoch):
                 correct=correct, 
                 total=total
             )
-    # print (top_k_accuracy_score(all_targets, all_probas, k=3)*100)
 
 def test(epoch):
     model.eval()
@@ -173,7 +168,7 @@ def test(epoch):
                 predict_probas = test_classifier.predict_proba(outputs.cpu().data.numpy())
                 all_targets += targets.cpu().data.tolist()
                 all_probas += predict_probas.tolist()
-                # print (preds, targets)
+
                 total += targets.size(0)
                 correct += (preds == targets).sum().item()
                 accuracy = 100.*correct/total
@@ -183,6 +178,7 @@ def test(epoch):
                     correct=correct, 
                     total=total
                 )
+
     accuracy_at_k = (top_k_accuracy_score(all_targets, all_probas, k=3)*100)
     print ("Accuracy@3:", accuracy_at_k)
     return accuracy, accuracy_at_k
@@ -196,4 +192,3 @@ for epoch in range(config['epochs']):
         best_acc = test_acc
         save_model(epoch, test_acc, {"top_k": top_k_acc})
     scheduler.step()
-train(1)

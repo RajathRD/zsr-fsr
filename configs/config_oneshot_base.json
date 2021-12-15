@@ -1,13 +1,13 @@
 {
     "_dataset_choices": "cifar_original | cifar_zs | cifar_wv | cifar_oneshot",
-    "dataset": "cifar_original", 
-    "model_name": "base.pth",
+    "dataset": "cifar_oneshot", 
+    "model_name": "oneshot_triplet.pth",
     "data_dir": "../data",
     "model_dir": "./saved_models",
     "w2v_dir": "../data/wordvectors/",
     
     "lr": 0.1,
-    "batch_size": 128,
+    "batch_size": 512,
     "epochs": 200,
     "resume": null,
 

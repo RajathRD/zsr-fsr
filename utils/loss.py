@@ -32,9 +32,9 @@ class DeviseLoss(nn.Module):
         loss /= outputs.shape[0]
         return loss
 
-class DeviseLossWNegative(nn.Module):
+class TripletLoss(nn.Module):
     def __init__(self):
-        super(DeviseLossWNegative, self).__init__()
+        super(TripletLoss, self).__init__()
         self.margin = 0.2
     
     # cosine

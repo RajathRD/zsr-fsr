@@ -5,6 +5,7 @@ import torchvision
 import json
 import numpy as np
 import pickle 
+import torch
 
 from PIL import Image
 from torch.utils.data import Dataset
@@ -143,7 +144,50 @@ class cifarKShot(Dataset):
             if not self.train:
                 query = self.transform(query)
         
-        return img, query, target
+        if self.train:
+            return img, target
+        else:
+            return img, query, target
 
     def __len__(self):
         return len(self.data)
+
+class kShotSupport(Dataset):
+    def __init__(self, data_dir, transforms, train, k=1):
+        self.k = k
+        self.train = train
+        if train == True:
+            self.transform = T.Compose(transforms)
+            torch_data = torchvision.datasets.CIFAR100(
+                root=data_dir, train=True, download=True, transform=self.transform)    
+        else:
+            self.transform = T.Compose(transforms)
+            torch_data = torchvision.datasets.CIFAR100(
+                root=data_dir, train=False, download=True, transform=self.transform)
+
+        test_classes = [torch_data.classes.index(c) for c in config["test_classes"]]
+        support = pickle.load(open(os.path.join(config['data_dir'], config['support_file']), "rb"))
+        self.support_data, self.support_indices = support["images"], support["indices"]
+        if train == True:
+            self.target_classes = np.delete(np.arange(100), test_classes)
+        else:
+            self.target_classes = np.array(test_classes)
+
+        self.indices = [i for i in range(len(torch_data.targets)) if torch_data.targets[i] in self.target_classes]
+        # self.targets = list(np.array(torch_data.targets)[self.indices])
+
+        self.data = []
+        self.targets = []
+        for c_i in self.target_classes:
+            for j in range(self.k):
+                img = self.support_data[c_i][0]
+                img = Image.fromarray(img)
+                img = self.transform(img)
+                self.data.append(img)
+                self.targets.append(c_i)
+
+        
+        self.data = torch.stack(self.data)
+        print ("Support Data: ", self.data.shape, self.targets)
+        
+        

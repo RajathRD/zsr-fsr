@@ -6,6 +6,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as T
 import torch.backends.cudnn as cudnn
+
+from pytorch_metric_learning import losses
+
+from sklearn.neighbors import KNeighborsClassifier
 from datasets.dataloader import *
 from models.oneshot_model import *
 
@@ -16,7 +20,10 @@ from time import sleep
 config_file = "./configs/config_oneshot_base.json"
 config = json.load(open(config_file))
 print (f"Loaded: {config_file}")
-model_dir = config['model_dir']
+model_dir = os.path.join(config['model_dir'], "oneshot")
+if not os.path.exists(model_dir):
+    os.makedirs(model_dir)
+
 model_name = config['model_name']
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
@@ -66,7 +73,7 @@ elif dataset == "cifar_wv":
 elif dataset == 'cifar_oneshot':
     train_data = cifarKShot(data_dir, train_transforms, transforms, train=True, k=1)
     test_data = cifarKShot(data_dir, train_transforms, transforms, train=False, k=1)
-    
+    support = kShotSupport(data_dir, transforms, False, k=1)    
 
 train_loader = torch.utils.data.DataLoader(
     train_data, batch_size=batch_size, shuffle=True, num_workers=2)
@@ -83,7 +90,8 @@ if device == "cuda":
     cudnn.benchmark = True
 #TODO: implement resume train
 
-criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss()
+criterion = losses.TripletMarginLoss()
 
 optimizer = optim.SGD(model.parameters(), lr=config['lr'],
                       momentum=0.9, weight_decay=0.0005)
@@ -111,7 +119,7 @@ def train(epoch):
             tepoch.set_description(f'Epoch: {epoch}')
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
-            outputs = model(inputs)
+            outputs, embedding = model(inputs)
             loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
@@ -133,14 +141,28 @@ def test(epoch):
     total = 0
     with torch.no_grad():
         with tqdm(test_loader, unit='batch') as tepoch:
-            for inputs, targets in tepoch:
+            for inputs, query, targets in tepoch:
                 tepoch.set_description(f'Epoch: {epoch}')
                 inputs, targets = inputs.to(device), targets.to(device)
-                outputs = model(inputs)
+                outputs, embedding = model(inputs)
+                _, support_embedding = model(support.data.to(device))
+
+                support_embedding = support_embedding.cpu().data.numpy()
+
+                # print ("Support Embedding Shape: ", support_embedding.shape)
+                test_classifier = KNeighborsClassifier(n_neighbors=1)
+                test_classifier.fit(support_embedding, np.array(support.targets))
+
+                preds = test_classifier.predict(embedding.cpu().data.numpy())
+                preds = torch.Tensor(preds)
+                # preds = torch.Tensor(train_data.target_classes[predicted])
+                # predict_probas = train_classifier.predict_proba(outputs.cpu().data.numpy())
+
                 loss = criterion(outputs, targets)
-                _, predicted = outputs.max(1)
+                
+                t = targets.cpu()
                 total += targets.size(0)
-                correct += (predicted == targets).sum().item()
+                correct += (preds == t).sum().item()
                 accuracy = 100.*correct/total
                 tepoch.set_postfix(
                     loss=loss.item(), 

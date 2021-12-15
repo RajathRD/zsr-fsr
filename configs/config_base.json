@@ -1,7 +1,7 @@
 {
     "_dataset_choices": "cifar_original | cifar_zs | cifar_wv | cifar_oneshot",
     "dataset": "cifar_original", 
-    "model_name": "exp.pth",
+    "model_name": "base.pth",
     "data_dir": "../data",
     "model_dir": "./saved_models",
     "w2v_dir": "../data/wordvectors/",
@@ -17,5 +17,6 @@
     "googlenews": "w2v_google.pkl",
     "glove": "w2v_glove.pkl",
     "glove_twitter": "w2v_glove_twitter.pkl",
+    "bert": "w2v_bert.pkl",
     "support_file": "cifar_kshot_support.pkl"
 }

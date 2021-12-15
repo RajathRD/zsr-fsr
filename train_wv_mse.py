@@ -9,21 +9,23 @@ import torch.backends.cudnn as cudnn
 
 from sklearn.neighbors import KNeighborsClassifier
 from datasets.dataloader import *
-from models.base_model import BaseModel
+from models.base_model import *
 
 # tqdm progressbarfrom:
 # https://towardsdatascience.com/training-models-with-a-progress-a-bar-2b664de3e13e
 from tqdm import tqdm
 from time import sleep
 
-config = json.load(open("./configs/config_wv.json"))
-
+config_file = "./configs/config_wv.json"
+config = json.load(open(config_file))
+print (f"Loaded: {config_file}")
+print(config)
 model_dir = config['model_dir']
 model_name = config['model_name']
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
 
-
+vector_type = 'bert'
 dataset = config['dataset']
 lr = config['lr']
 epochs = config['epochs']
@@ -61,8 +63,9 @@ elif dataset == "cifar_zs":
             \nTrain Classes: {len(train_data.target_classes)} Test Classes: {len(test_data.target_classes)}")
 
 elif dataset == "cifar_wv":
-    train_data = cifarZSW2V(data_dir, train_transforms, transforms, train=True, vector_type='glove')
-    test_data = cifarZSW2V(data_dir, train_transforms, transforms, train=False, vector_type='glove')
+    
+    train_data = cifarZSW2V(data_dir, train_transforms, transforms, train=True, vector_type=vector_type)
+    test_data = cifarZSW2V(data_dir, train_transforms, transforms, train=False, vector_type=vector_type)
 
 elif dataset == 'cifar_oneshot':
     train_data = cifarKShot(data_dir, train_transforms, transforms, train=True, k=1)
@@ -82,8 +85,10 @@ test_loader = torch.utils.data.DataLoader(
     test_data, batch_size=batch_size, shuffle=False, num_workers=2)
 
 print("Creating Model...")
-model = BaseModel(300)
+model = BaseModel(train_data.word_vectors['apple'].shape[0])
+# model = CNN(train_data.word_vectors['apple'].shape[0])
 criterion = nn.MSELoss()
+# criterion = nn.CosineEmbeddingLoss()
 model = model.to(device)
 
 if device == "cuda":
@@ -117,6 +122,7 @@ def train(epoch):
             inputs, target_wvs = inputs.to(device), target_wvs.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
+            # print (outputs.shape)
             loss = criterion(outputs, target_wvs)
             loss.backward()
             optimizer.step()

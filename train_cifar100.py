@@ -13,9 +13,9 @@ from models.base_model import BaseModel
 # https://towardsdatascience.com/training-models-with-a-progress-a-bar-2b664de3e13e
 from tqdm import tqdm
 from time import sleep
-
-config = json.load(open("./configs/config_base.json"))
-
+config_file = "./configs/config_base.json"
+config = json.load(open(config_file))
+print (f"Loaded: {config_file}")
 model_dir = config['model_dir']
 model_name = config['model_name']
 if not os.path.exists(model_dir):

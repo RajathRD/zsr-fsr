@@ -44,7 +44,7 @@ class DeviseLossWNegative(nn.Module):
         
         true_distance = self.distance(outputs, target_wvs)
         neg_distance = self.distance(outputs, negatives)
-        loss = torch.clamp(self.margin + true_distance - neg_distance, 0)
+        loss = torch.clamp(self.margin - true_distance + neg_distance, 0)
         loss = torch.sum(loss, axis=0)
         loss /= outputs.shape[0]
 
@@ -54,11 +54,29 @@ class HingeLoss(nn.Module):
     def __init__(self):
         super(HingeLoss, self).__init__()
     
-    def forward(self, outputs, targets, target_wvs):
+    def forward(self, outputs, target_wvs):
         margin = 0.1
         true_distance = torch.sum(torch.multiply(outputs, target_wvs), axis=1)
         true_distance = torch.clamp(margin - true_distance, min=0)
         loss = torch.sum(true_distance)
         loss /= outputs.shape[0]
         
+        return loss
+
+class MSE(nn.Module):
+    def __init__(self):
+        super(MSE, self).__init__()
+
+    def distance(self, a, b):
+        return torch.sum(torch.square(a - b), axis=1)
+
+    def forward(self, outputs, target_wvs, negatives):
+        loss = 0        
+        true_distance = self.distance(outputs, target_wvs)
+        # neg_distance = self.distance(outputs, negatives)
+        # loss = torch.clamp(self.margin + true_distance - neg_distance, 0)
+        # loss = torch.mean(true_distance)
+        loss = torch.sum(true_distance)
+        loss /= outputs.shape[0]
+
         return loss

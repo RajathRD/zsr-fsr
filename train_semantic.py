@@ -11,14 +11,13 @@ from sklearn.neighbors import KNeighborsClassifier
 from datasets.dataloader import *
 from models.base_model import BaseModel
 from models.semantic_model import *
-from utils.loss import *
 
 # tqdm progressbarfrom:
 # https://towardsdatascience.com/training-models-with-a-progress-a-bar-2b664de3e13e
 from tqdm import tqdm
 from time import sleep
 
-config_file = "./configs/config_wv.json"
+config_file = "./configs/config_wv_semantic.json"
 config = json.load(open(config_file))
 print (f"Loaded: {config_file}")
 
@@ -73,11 +72,11 @@ elif dataset == 'cifar_oneshot':
     test_data = cifarKShot(data_dir, train_transforms, transforms, train=False, k=1)
     
 
-train_classifier = KNeighborsClassifier(n_neighbors=1)
-test_classifier = KNeighborsClassifier(n_neighbors=1)
+# train_classifier = KNeighborsClassifier(n_neighbors=1)
+# test_classifier = KNeighborsClassifier(n_neighbors=1)
 
-train_classifier.fit(train_data.target_wv, np.arange(len(train_data.target_classes)))
-test_classifier.fit(test_data.target_wv, np.arange(len(test_data.target_classes)))
+# train_classifier.fit(train_data.target_wv, np.arange(len(train_data.target_classes)))
+# test_classifier.fit(test_data.target_wv, np.arange(len(test_data.target_classes)))
 
 train_loader = torch.utils.data.DataLoader(
     train_data, batch_size=batch_size, shuffle=True, num_workers=2)
@@ -86,8 +85,8 @@ test_loader = torch.utils.data.DataLoader(
     test_data, batch_size=batch_size, shuffle=False, num_workers=2)
 
 print("Creating Model...")
-model = BaseModel(300)
-criterion = HingeLoss()
+model = SemanticEmbeddingModel(300)
+criterion = nn.MSELoss()
 model = model.to(device)
 
 if device == "cuda":
@@ -99,13 +98,13 @@ optimizer = optim.SGD(model.parameters(), lr=config['lr'],
 
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-def save_model(epoch, accuracy):
+def save_model(epoch, loss):
     print ("Saving Model...")
     torch.save(
         {
             "epoch": epoch,
             "model": model.state_dict(),
-            "accuracy": accuracy 
+            "loss": loss
         },
         os.path.join(model_dir, model_name)
     )
@@ -114,52 +113,60 @@ def save_model(epoch, accuracy):
 def train(epoch):
     model.train()
     correct = 0
+    total_loss = 0
     total = 0
     with tqdm(train_loader, unit='batch', bar_format="{l_bar}{bar}{n_fmt}/{total_fmt} [{elapsed}] {postfix}") as tepoch:
-        for inputs, target_wvs, targets, negatives in tepoch :
+        for batch_idx, (inputs, target_wvs, targets, negatives) in enumerate(tepoch) :
             tepoch.set_description(f'Epoch: {epoch}')
             inputs, target_wvs = inputs.to(device), target_wvs.to(device)
             optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, target_wvs)
+            outputs, t_wvs = model(inputs, target_wvs)
+            loss = criterion(outputs, t_wvs)
             loss.backward()
             optimizer.step()
-            predicted = train_classifier.predict(outputs.cpu().data.numpy())
-            preds = torch.Tensor(train_data.target_classes[predicted])
-            
+            # predicted = train_classifier.predict(outputs.cpu().data.numpy())
+            # preds = torch.Tensor(train_data.target_classes[predicted])
+            total_loss += loss.item()
             # print (preds, targets)
-            total += targets.size(0)
-            correct += (preds == targets).sum().item()
-            accuracy = 100.*correct/total
+            # total += targets.size(0)
+            # correct += (preds == targets).sum().item()
+            # accuracy = 100.*correct/total
             tepoch.set_postfix(
-                loss=loss.item(), 
-                accuracy=accuracy, 
-                correct=correct, 
-                total=total
+                loss=total_loss/(batch_idx+1), 
+                # accuracy=accuracy, 
+                # correct=correct, 
+                # total=total
             )
             
 
 def test(epoch):
     model.eval()
-
+    total_loss = 0
     correct = 0
     total = 0
     with torch.no_grad():
         with tqdm(test_loader, unit='batch') as tepoch:
-            for inputs, target_wvs, targets, negatives in tepoch:
+            for batch_idx, (inputs, target_wvs, targets, negatives) in enumerate(tepoch) :
                 tepoch.set_description(f'Epoch: {epoch}')
                 inputs, target_wvs = inputs.to(device), target_wvs.to(device)
-                outputs = model(inputs)
-                loss = criterion(outputs, target_wvs)
+                outputs, t_wvs = model(inputs, target_wvs)
+                test_classifier = KNeighborsClassifier(n_neighbors=1)
+                cluster_wvs = torch.Tensor(test_data.target_wv).to(device)
+                loss = criterion(outputs, t_wvs)
+                cluster_wvs = model.forward_semantic(cluster_wvs)
+                cluster_wvs = cluster_wvs.cpu().data.numpy()
+                test_classifier.fit(test_data.target_wv, np.arange(len(test_data.target_classes)))
+
                 predicted = test_classifier.predict(outputs.cpu().data.numpy())
                 preds = torch.Tensor(test_data.target_classes[predicted])
-                
+                test_classifier.fit(test_data.target_wv, np.arange(len(test_data.target_classes)))
+                total_loss += loss.item()    
                 # print (preds, targets)
                 total += targets.size(0)
                 correct += (preds == targets).sum().item()
                 accuracy = 100.*correct/total
                 tepoch.set_postfix(
-                    loss=loss.item(), 
+                    loss=total_loss/(batch_idx+1), 
                     accuracy=accuracy, 
                     correct=correct, 
                     total=total

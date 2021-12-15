@@ -58,6 +58,7 @@ class cifarZSClassification(Dataset):
 
 class cifarZSW2V(Dataset):
     def __init__(self, data_dir, train_transforms, transforms, train, vector_type='glove'):
+        np.random.seed(10)
         if train == True:
             self.transform = T.Compose(train_transforms + transforms)
             torch_data = torchvision.datasets.CIFAR100(
@@ -78,15 +79,16 @@ class cifarZSW2V(Dataset):
         # print (self.classes, len(self.classes))
         # print ()
         self.target_wv = [self.word_vectors[self.classes[idx]] for idx in self.target_classes]
-
+        
         self.indices = [i for i in range(len(torch_data.targets)) if torch_data.targets[i] in self.target_classes]
 
         self.data = torch_data.data[self.indices]
         self.targets = list(np.array(torch_data.targets)[self.indices])
+        self.negatives = [self.word_vectors[self.classes[np.random.choice([c for c in self.target_classes if c != self.targets[idx]])]] for idx in range(len(self.data))]
 
     def __getitem__(self, index):
         img, target = self.data[index], self.word_vectors[self.classes[self.targets[index]]]
-        negative = self.word_vectors[self.classes[np.random.choice([c for c in self.target_classes if c != self.targets[index]])]]
+        negative = self.negatives[index]
         img = Image.fromarray(img)
 
         if self.transform is not None:
@@ -129,8 +131,9 @@ class cifarKShot(Dataset):
         img = self.data[index]
 
         if self.train:
-            target = #pick random train image for target
-            negative = # pick random train image which is not target
+            pass
+            target = self.query[index]
+            negative = self.negative[index]
         else:
             targets = self.support_data[self.targets[index]][:k]
             

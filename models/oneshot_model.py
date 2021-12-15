@@ -13,13 +13,13 @@ class OneShotBaseModel(nn.Module):
         self.linear_1 = nn.Linear(300, num_outputs)
         self.relu = nn.ReLU(inplace=True)
     
-    def forward(self, img, target_img):
+    def forward(self, img):
         embedding = self.resnet(img)
-        out = self.linear_1(embedding)
+        out = self.relu(self.linear_1(embedding))
 
         return out, embedding
 
-class OneShotEmbeddingModel(nn.Module):
+class Siamese(nn.Module):
     def __init__(self, num_outputs=300):
         super(OneShotModel, self).__init__()
 
@@ -28,7 +28,7 @@ class OneShotEmbeddingModel(nn.Module):
         # self.linear_1 = nn.Linear(300, num_outputs)
         # self.relu = nn.ReLU(inplace=True)
     
-    def forward(self, img, target_img):
+    def forward(self, img, target):
         embedding = self.resnet(img)
-        
+        embedding = self.resnet(target)
         return embedding

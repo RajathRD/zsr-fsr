@@ -22,7 +22,8 @@ def cifarOriginal(data_dir, train_transforms, transforms):
 
 class cifarZSClassification(Dataset):
     def __init__(self, data_dir, train_transforms, transforms, train):
-        if train == True:
+        self.train = train
+        if self.train == True:
             self.transform = T.Compose(train_transforms + transforms)
             torch_data = torchvision.datasets.CIFAR100(
                 root=data_dir, train=True, download=True, transform=self.transform)    
@@ -58,6 +59,7 @@ class cifarZSClassification(Dataset):
 
 class cifarZSW2V(Dataset):
     def __init__(self, data_dir, train_transforms, transforms, train, vector_type='glove'):
+        self.train = train
         np.random.seed(10)
         if train == True:
             self.transform = T.Compose(train_transforms + transforms)
@@ -88,6 +90,7 @@ class cifarZSW2V(Dataset):
 
     def __getitem__(self, index):
         img, target = self.data[index], self.word_vectors[self.classes[self.targets[index]]]
+        target_class = self.targets[index]
         negative = self.negatives[index]
         img = Image.fromarray(img)
 
@@ -96,7 +99,7 @@ class cifarZSW2V(Dataset):
         # print (target)
         target = TF.Tensor(target) 
         negative = TF.Tensor(negative)
-        return img, target, self.targets[index], negative
+        return img, target, target_class, negative
 
     def __len__(self):
         return len(self.data)
@@ -128,24 +131,19 @@ class cifarKShot(Dataset):
         self.targets = list(np.array(torch_data.targets)[self.indices])
 
     def __getitem__(self, index):
-        img = self.data[index]
-
-        if self.train:
-            pass
-            target = self.query[index]
-            negative = self.negative[index]
-        else:
-            targets = self.support_data[self.targets[index]][:k]
-            
+        img, target = self.data[index], self.targets[index]
         img = Image.fromarray(img)
-        target = Image.fromarray(target)
-
+        
+        if not self.train:
+            query = self.support_data[self.targets[index]][0]
+            query = Image.fromarray(query)
+        
         if self.transform is not None:
             img = self.transform(img)
-            target = self.transform(target)
-            negative = self.transform(negative)
+            if not self.train:
+                query = self.transform(query)
         
-        return img_1, img_2, neg_img
+        return img, query, target
 
     def __len__(self):
         return len(self.data)

@@ -7,7 +7,7 @@ import torch.optim as optim
 import torchvision.transforms as T
 import torch.backends.cudnn as cudnn
 from datasets.dataloader import *
-from models.base_model import BaseModel
+from models.oneshot_model import *
 
 # tqdm progressbarfrom:
 # https://towardsdatascience.com/training-models-with-a-progress-a-bar-2b664de3e13e
@@ -75,7 +75,7 @@ test_loader = torch.utils.data.DataLoader(
     test_data, batch_size=batch_size, shuffle=False, num_workers=2)
 
 print("Creating Model...")
-model = BaseModel()
+model = OneShotBaseModel()
 
 model = model.to(device)
 

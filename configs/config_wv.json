@@ -1,12 +1,13 @@
 {
     "_dataset_choices": "cifar_original | cifar_zs | cifar_wv | cifar_oneshot",
     "dataset": "cifar_wv", 
+    "vector_type": "glove",
     "model_name": "wv_glove.pth",
     "data_dir": "../data",
     "model_dir": "./saved_models",
     "w2v_dir": "../data/wordvectors/",
     
-    "lr": 0.5,
+    "lr": 0.1,
     "batch_size": 128,
     "epochs": 200,
     "resume": null,

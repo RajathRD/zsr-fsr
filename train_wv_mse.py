@@ -18,6 +18,7 @@ from tqdm import tqdm
 from time import sleep
 
 config_file = "./configs/config_wv.json"
+
 config = json.load(open(config_file))
 print (f"Loaded: {config_file}")
 print(config)
@@ -26,7 +27,7 @@ model_name = config['model_name']
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
 
-vector_type = 'bert'
+vector_type = config['vector_type']
 dataset = config['dataset']
 lr = config['lr']
 epochs = config['epochs']
@@ -101,14 +102,16 @@ optimizer = optim.SGD(model.parameters(), lr=config['lr'],
 
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-def save_model(epoch, accuracy):
+def save_model(epoch, accuracy, meta):
     print ("Saving Model...")
-    torch.save(
-        {
+    state_dict = {
             "epoch": epoch,
             "model": model.state_dict(),
             "accuracy": accuracy 
-        },
+        }
+    state_dict.update(meta)
+    torch.save(
+        state_dict,
         os.path.join(model_dir, model_name)
     )
 
@@ -148,7 +151,7 @@ def train(epoch):
                 correct=correct, 
                 total=total
             )
-    print (top_k_accuracy_score(all_targets, all_probas, k=3)*100)
+    # print (top_k_accuracy_score(all_targets, all_probas, k=3)*100)
 
 def test(epoch):
     model.eval()
@@ -180,16 +183,17 @@ def test(epoch):
                     correct=correct, 
                     total=total
                 )
-    print (top_k_accuracy_score(all_targets, all_probas, k=3)*100)
-    return accuracy
+    accuracy_at_k = (top_k_accuracy_score(all_targets, all_probas, k=3)*100)
+    print ("Accuracy@3:", accuracy_at_k)
+    return accuracy, accuracy_at_k
 
 best_acc = 0
 print ("Starting Training...")
 for epoch in range(config['epochs']):
     train(epoch)
-    test_acc = test(epoch)
+    test_acc, top_k_acc = test(epoch)
     if test_acc > best_acc:
         best_acc = test_acc
-        save_model(epoch, test_acc)
+        save_model(epoch, test_acc, {"top_k": top_k_acc})
     scheduler.step()
 train(1)

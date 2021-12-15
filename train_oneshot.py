@@ -20,6 +20,7 @@ from time import sleep
 config_file = "./configs/config_oneshot_base.json"
 config = json.load(open(config_file))
 print (f"Loaded: {config_file}")
+print (f'Config: {config}')
 model_dir = os.path.join(config['model_dir'], "oneshot")
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
@@ -73,7 +74,7 @@ elif dataset == "cifar_wv":
 elif dataset == 'cifar_oneshot':
     train_data = cifarKShot(data_dir, train_transforms, transforms, train=True, k=1)
     test_data = cifarKShot(data_dir, train_transforms, transforms, train=False, k=1)
-    support = kShotSupport(data_dir, transforms, False, k=1)    
+    support = kShotSupport(data_dir, transforms, False, k=10)    
 
 train_loader = torch.utils.data.DataLoader(
     train_data, batch_size=batch_size, shuffle=True, num_workers=2)
@@ -150,7 +151,7 @@ def test(epoch):
                 support_embedding = support_embedding.cpu().data.numpy()
 
                 # print ("Support Embedding Shape: ", support_embedding.shape)
-                test_classifier = KNeighborsClassifier(n_neighbors=1)
+                test_classifier = KNeighborsClassifier(n_neighbors=3)
                 test_classifier.fit(support_embedding, np.array(support.targets))
 
                 preds = test_classifier.predict(embedding.cpu().data.numpy())

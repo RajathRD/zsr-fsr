@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as T
 import torch.backends.cudnn as cudnn
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
 from datasets.dataloader import *
 from models.base_model import BaseModel
 
@@ -34,6 +36,8 @@ print (f"Device: {device}")
 print(f'Loading Data ({data_dir, dataset})...')
 print(f'Models will be saved in {model_dir} as {model_name}')
 
+# reference for data transfomations from:
+# https://github.com/kuangliu/pytorch-cifar/blob/master/main.py
 train_transforms = [
     T.RandomCrop(32, padding=4),
     T.RandomHorizontalFlip(),
@@ -127,7 +131,8 @@ def train(epoch):
 
 def test(epoch):
     model.eval()
-
+    all_predictions = []
+    all_targets = []
     correct = 0
     total = 0
     with torch.no_grad():
@@ -147,7 +152,7 @@ def test(epoch):
                     correct=correct, 
                     total=total
                 )
-    
+    print 
     return accuracy
 
 best_acc = 0

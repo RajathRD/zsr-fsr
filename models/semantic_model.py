@@ -36,22 +36,19 @@ class SemanticEmbeddingModel(nn.Module):
                 nn.init.normal_(m.weight, std=1e-3)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x, w):
-        out_x = self.resnet(x)
-        out_w = self.linear1(w)
-        out_w = self.bn1(out_w)
-        out_w = self.relu(out_w)
-
-        out_w = self.relu(self.linear2(out_w))
-        
-        return out_x, out_w
-
     def forward_semantic(self, w):
         out_w = self.linear1(w)
         out_w = self.bn1(out_w)
         out_w = self.relu(out_w)
 
         out_w = self.relu(self.linear2(out_w))
-        # print (out_w.shape)
         return out_w
+
+    def forward(self, x, w):
+        out_x = self.resnet(x)
+        out_w = self._forward_semantic(w)
+        
+        return out_x, out_w
+
+
         

@@ -1,3 +1,7 @@
+## this is the torchvision implementation of resnet
+# we modify this network for cifar as cifar is 32 x 32. 
+# comment with "change:" are made at each line modifications were made
+
 from typing import Type, Any, Callable, Union, List, Optional
 
 import torch
@@ -161,6 +165,8 @@ class ResNet(nn.Module):
             )
         self.groups = groups
         self.base_width = width_per_group
+        
+        # change: kernel size and stride
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
@@ -169,6 +175,8 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2, dilate=replace_stride_with_dilation[0])
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilate=replace_stride_with_dilation[1])
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2])
+        
+        # change: dropout at the end of block
         self.dropout = nn.Dropout(0.4)
         
         self.fc = nn.Linear(512 * block.expansion, num_outputs)
@@ -179,6 +187,7 @@ class ResNet(nn.Module):
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+            # change: initialize linear weights with normal weight
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, std=1e-3)
                 nn.init.constant_(m.bias, 0)
@@ -246,6 +255,7 @@ class ResNet(nn.Module):
         x = self.layer4(x)
         x = self.dropout(x)
 
+        # change: in avg pool size; we do not sure
         x = F.avg_pool2d(x, 4)
         x = torch.flatten(x, 1)
         x = self.fc(x)
@@ -274,4 +284,5 @@ def resnet18(num_outputs=100, **kwargs: Any) -> ResNet:
     Args:
         num_outputs (int): number of final output neurons
     """
+    # change: add num_outputs to 
     return _resnet("resnet18", num_outputs, BasicBlock, [2, 2, 2, 2], **kwargs)

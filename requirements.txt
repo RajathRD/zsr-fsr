@@ -4,3 +4,4 @@ gensim==4.1.2
 scikit-learn==1.0.1
 sklearn==0.0
 tqdm==4.62.3
+pytorch_metric_learning==1.0.0

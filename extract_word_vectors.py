@@ -10,7 +10,7 @@ import chakin
 from gensim import models
 from datasets.dataloader import cifarOriginal
 
-config = json.load(open("config.json"))
+config = json.load(open("./configs/config_base.json"))
 
 data_dir = config['w2v_dir']
 

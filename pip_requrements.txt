@@ -1,3 +1,0 @@
-chakin
-fasttext
-pytorch_metric_learning
